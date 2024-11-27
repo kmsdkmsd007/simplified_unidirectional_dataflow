@@ -1,0 +1,8 @@
+include: package:austerity/analysis_options.yaml
+
+
+analyzer:
+  errors:
+    unused_catch_stack: error
+    avoid_catches_without_on_clauses: ignore
+    public_member_api_docs: ignore
