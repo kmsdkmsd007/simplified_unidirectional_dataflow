@@ -77,19 +77,23 @@ MockClient getMockClientForJsonPlaceholder() => MockClient((request) async {
 
       // Other pages
       final startIndex = int.parse(start);
+
+      final json = jsonEncode(
+        List.generate(
+          10,
+          (index) => {
+            'id': startIndex + index + 1,
+            'title': 'Post ${startIndex + index + 1}',
+            'body': 'Content of Post ${startIndex + index + 1}',
+            'userId': 1,
+          },
+        ),
+      );
+
       return Future.delayed(
         const Duration(seconds: 1),
         () => Response(
-          jsonEncode(
-            List.generate(
-              10,
-              (index) => {
-                'id': startIndex + index + 1,
-                'title': 'Post ${startIndex + index + 1}',
-                'body': 'Content of Post ${startIndex + index + 1}',
-              },
-            ),
-          ),
+          json,
           200,
           headers: {'x-total-count': '100'},
         ),

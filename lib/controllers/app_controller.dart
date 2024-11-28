@@ -21,15 +21,12 @@ class AppController extends ValueNotifier<AppState> {
   }
 
   int? get postCount => switch (value.postsData) {
-        Paged<ImmutableList<Post>, Fault>(
+        PagedPosts(
           data: final posts,
         ) =>
           posts.length,
         _ => null,
       };
-
-  /// Whether or not the last fetch says the paging is complete
-  bool pagingComplete = false;
 
   /// Callback that checks to see if there are more posts to fetch
   Uri? _getNextUrl(Response r) {
@@ -40,111 +37,79 @@ class AppController extends ValueNotifier<AppState> {
       _ => null,
     };
 
-    debugPrint('Next URL: $nextUrl');
     return nextUrl;
   }
 
+  /// Get the url based on the page count
   Uri _postsUrl(int pageCount) => Uri.parse(
         'https://jsonplaceholder.typicode.com/posts?_start=${pageCount * 10}&_limit=10',
       );
 
   /// Fetches the next page of posts
   Future<void> fetchPosts() async {
-    if (value.postsData is Loading || value.postsData is Paging) {
-      debugPrint('Already fetching posts. Ignoring request.');
-      return;
-    } else {
-      debugPrint('Fetching posts... Current state: ${value.postsData}');
-    }
-
     try {
-      final previousPosts = switch (value.postsData) {
-        Paged<ImmutableList<Post>, Fault>(data: final d) => d,
-        _ => null,
-      };
-
-      final previousPostsState = value.postsData;
-
-      //Set state to loading
-      value = value.copyWith(postsData: Paging(previousPosts ?? ~<Post>[]));
-      final dataState = await _fetchPostsData();
-      debugPrint('Fetch result: $dataState. Page Count: $value.pageCount. '
-          'Post Count: $postCount. Updating state...');
-
-      if (previousPosts
-          case Paged<ImmutableList<Post>, Fault>(data: final posts)) {
-        debugPrint('Before state update. Post IDs: ${posts.map((e) => e.id)}');
-      } else {
-        debugPrint('Before state update. State: ${value.postsData}');
+      if (value.postsData is Loading || value.postsData is Paging) {
+        debugPrint('Already fetching posts. Ignoring request.');
+        return;
       }
 
+      switch (value.postsData) {
+        // Switch to paging a new page
+        case Paged(data: final d, nextUrl: final url):
+          value = value.copyWith(postsData: Paging(d, nextUrl: url));
+
+        // Switch to paging for the first page
+        case Uninitialized():
+          value = value.copyWith(
+            postsData: Paging(~<Post>[], nextUrl: _postsUrl(0)),
+          );
+
+        default:
+      }
+
+      // Get the next page of posts
+      final nextPageResult = await _fetchPostsData();
+
+      debugPrint('Fetch result: $nextPageResult. Page Count: $value.pageCount. '
+          'Post Count: $postCount. Updating state...');
+
       value = value.copyWith(
-        postsData: switch ((previousPostsState, dataState)) {
-          //This is the second page
+        postsData: switch ((value.postsData, nextPageResult)) {
+          //This is a page after the first page
           (
-            Paged<ImmutableList<Post>, Fault>(data: final oldPosts),
-            Paged<ImmutableList<Post>, Fault>(data: final newPosts)
+            PagingPosts(data: final oldPosts),
+            PagedPosts(data: final newPosts)
           ) =>
             // We add the new posts to the old posts
-            _handleNextPage(oldPosts, newPosts),
+            Paged(
+              ~[...oldPosts, ...newPosts],
+              nextUrl: _postsUrl(value.pageCount + 1),
+            ),
           //This is the first page
-          (_, final Paged<ImmutableList<Post>, Fault> result) =>
-            _handleFirstPage(result),
+          (_, final PagedPosts pagedPosts) => pagedPosts,
           // This is an error or some other result
           (_, final otherResult) => otherResult,
         },
       );
 
-      if (value.postsData
-          case Paged<ImmutableList<Post>, Fault>(data: final posts)) {
-        debugPrint('State updated. Post IDs: ${posts.map((e) => e.id)}');
-      } else {
-        debugPrint('State updated. State: ${value.postsData}');
-      }
-
-      //This is not a very accurate page count, but it works for this example
       value = value.copyWith(pageCount: value.pageCount + 1);
-      debugPrint('incremented page count to ${value.pageCount}');
     } catch (e) {
-      debugPrint('Error fetching posts: $e');
+      //An error is unlikely, but could occur if there is a mistak in the code
       value = value.copyWith(postsData: Failed((message: e.toString())));
     }
   }
 
-  /// Handles the first page of posts
-  DataState<ImmutableList<Post>, Fault> _handleFirstPage(
-    Paged<ImmutableList<Post>, Fault> result,
-  ) {
-    debugPrint(
-      'Fetched the first ${result.data.length} new posts.',
-    );
-    return result;
-  }
-
-  /// Handles the next page of posts
-  Paged<ImmutableList<Post>, Fault> _handleNextPage(
-    ImmutableList<Post> oldPosts,
-    ImmutableList<Post> newPosts,
-  ) {
-    debugPrint(
-      'Fetched ${newPosts.length} new posts.',
-    );
-    final data = ~[...oldPosts, ...newPosts];
-    return Paged(data);
-  }
-
   /// Fetches posts from the API based on the current page
-  Future<DataState<ImmutableList<Post>, Fault>> _fetchPostsData() async {
+  Future<PostsState> _fetchPostsData() async {
     final fetchPostPageUrl = switch (value.postsData) {
-      Paged<ImmutableList<Post>, Fault>(nextUrl: final url) => url,
-      _ => _postsUrl(0),
+      PagedPosts(nextUrl: final url) || PagingPosts(nextUrl: final url) => url,
+      _ => null,
     };
 
     if (fetchPostPageUrl == null) {
+      debugPrint('No URL to fetch posts from. Ignoring request.');
       return value.postsData;
     }
-
-    debugPrint('Fetching posts from: $fetchPostPageUrl');
 
     return httpClient.getPagedData<Post>(
       fetchPostPageUrl,

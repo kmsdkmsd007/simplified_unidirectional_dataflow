@@ -6,7 +6,6 @@ import 'package:simplified_unidirectional_dataflow/framework/framework.dart';
 import 'package:simplified_unidirectional_dataflow/main.dart';
 import 'package:simplified_unidirectional_dataflow/models/app_state.dart';
 import 'package:simplified_unidirectional_dataflow/models/post.dart';
-import 'package:simplified_unidirectional_dataflow/ui/constants.dart';
 import 'package:simplified_unidirectional_dataflow/ui/info_card.dart';
 
 const postCountKey = ValueKey('PostsInfoCard');
@@ -19,41 +18,23 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
           title: const Text('Posts'),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
         body: ValueListenableBuilder<AppState>(
           valueListenable: container<AppController>(),
           builder: (context, state, _) => switch (state.postsData) {
-            // Loading
-            Loading() => spinner,
-
-            //We have data
-            Paged<ImmutableList<Post>, Fault>(
-              data: final posts,
-              nextUrl: final nextUrl
-            ) ||
-            Paging<ImmutableList<Post>, Fault>(
-              data: final posts,
-              nextUrl: final nextUrl
-            ) =>
+            Loading() => const Center(child: CircularProgressIndicator()),
+            PagedPosts(data: final posts, nextUrl: final nextUrl) ||
+            PagingPosts(data: final posts, nextUrl: final nextUrl) =>
               _mainStack(
                 context,
                 posts,
                 nextUrl,
-                Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (s) => _onScrollNotification(s, nextUrl),
-                    child: _mainListView(posts, nextUrl),
-                  ),
-                ),
+                _buildMainList(posts, nextUrl),
               ),
-
-            //An error occurred
-            Failed<ImmutableList<Post>, Fault>(
-              error: Fault(message: final msg)
-            ) =>
+            FailedPosts(error: Fault(message: final msg)) =>
               _errorDisplay(context, msg),
-
-            // Other cases
             _ => _defaultDisplay(context),
           },
         ),
@@ -70,7 +51,7 @@ class HomePage extends StatelessWidget {
           Column(
             children: [
               _infoCards(context, posts),
-              child,
+              Expanded(child: child),
             ],
           ),
           _refreshButton(context),
@@ -85,13 +66,13 @@ class HomePage extends StatelessWidget {
               children: [
                 Icon(
                   Icons.inbox_outlined,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.primary,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No data available.',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
@@ -110,13 +91,13 @@ class HomePage extends StatelessWidget {
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 48,
+                  size: 64,
                   color: Theme.of(context).colorScheme.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Error: $msg',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
                 ),
@@ -132,8 +113,8 @@ class HomePage extends StatelessWidget {
         bottom: 16,
         child: FloatingActionButton(
           onPressed: () => unawaited(container<AppController>().refresh()),
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          foregroundColor: Theme.of(context).colorScheme.onSecondary,
           child: const Icon(Icons.refresh),
         ),
       );
@@ -141,7 +122,16 @@ class HomePage extends StatelessWidget {
   Container _infoCards(BuildContext context, ImmutableList<Post> posts) =>
       Container(
         padding: const EdgeInsets.all(16),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              offset: Offset(0, 4),
+              blurRadius: 8,
+            ),
+          ],
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -159,58 +149,59 @@ class HomePage extends StatelessWidget {
         ),
       );
 
-  ListView _mainListView(ImmutableList<Post> posts, Uri? nextUrl) {
-    debugPrint('Rendering list view with ${posts.length} items.');
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: posts.length + 1,
-      itemBuilder: (context, index) => switch ((index, posts)) {
-        (final idx, _) when idx == posts.length => nextUrl != null
-            ? const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                  child: Text('Loading...'),
-                ),
-              )
-            : const SizedBox.shrink(),
-        (final idx, final items) => Card(
-            margin: const EdgeInsets.symmetric(
-              vertical: 4,
-              horizontal: 8,
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              title: Text(
-                '${items[idx].id}. ${items[idx].title}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+  Widget _buildMainList(ImmutableList<Post> posts, Uri? nextUrl) =>
+      NotificationListener<ScrollNotification>(
+        onNotification: (s) => _onScrollNotification(s, nextUrl),
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+          itemCount: posts.length + (nextUrl != null ? 1 : 0),
+          itemBuilder: (context, index) => index == posts.length
+              ? _loadingIndicator()
+              : _buildPostCard(context, posts[index]),
+        ),
+      );
+
+  Widget _loadingIndicator() => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+  Card _buildPostCard(BuildContext context, Post post) => Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${post.id}. ${post.title}',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  items[idx].body,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
+              const SizedBox(height: 8),
+              Text(
+                post.body,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
-            ),
+            ],
           ),
-      },
-    );
-  }
+        ),
+      );
 
   bool _onScrollNotification(ScrollNotification scrollInfo, Uri? nextUrl) {
     if (scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
         nextUrl != null) {
-      debugPrint('Fetching next page of posts...');
       unawaited(
         container<AppController>().fetchPosts(),
       );
-    } else {
-      debugPrint('No more posts to fetch.');
     }
     return false;
   }

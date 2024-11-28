@@ -11,6 +11,15 @@ typedef Post = ({
 /// The state of the posts.
 typedef PostsState = DataState<ImmutableList<Post>, Fault>;
 
+/// Paging state
+typedef PagingPosts = Paging<ImmutableList<Post>, Fault>;
+
+/// A page was loaded
+typedef PagedPosts = Paged<ImmutableList<Post>, Fault>;
+
+/// Failed to load posts
+typedef FailedPosts = Failed<ImmutableList<Post>, Fault>;
+
 /// Creates a new post.
 Post createPost({
   required int id,

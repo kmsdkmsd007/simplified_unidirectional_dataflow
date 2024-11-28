@@ -31,17 +31,12 @@ extension ClientExtensions on Client {
 
       final nextUrl = getNextUrlFromResponse(response);
 
-      debugPrint(
-          'API Called Url: $url. Response: ${response.statusCode} - $body. '
+      debugPrint('API Called Url: $url. Response: ${response.statusCode}'
           'Next Url: $nextUrl');
 
       return switch (response.statusCode) {
         200 => Paged(
-            ~(jsonDecode(body) as List<dynamic>)
-                .map((e) => fromJson(e as Map<String, dynamic>))
-                //Note that this will filter out any objects that couldn't
-                //be converted to type T
-                .whereType<T>(),
+            _mapData(body, fromJson),
             nextUrl: nextUrl,
           ),
         _ => Failed((message: 'Failed to load data: ${response.statusCode}')),
@@ -50,5 +45,17 @@ extension ClientExtensions on Client {
       //Note: you can include more information like stack trace here
       return Failed((message: e.toString()));
     }
+  }
+
+  ImmutableList<T> _mapData<T>(
+    String body,
+    T? Function(Map<String, dynamic> json) fromJson,
+  ) {
+    final list = ~(jsonDecode(body) as List<dynamic>)
+        .map((e) => fromJson(e as Map<String, dynamic>))
+        //Note that this will filter out any objects that couldn't
+        //be converted to type T
+        .whereType<T>();
+    return list;
   }
 }
