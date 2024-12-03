@@ -80,8 +80,7 @@ IocContainerBuilder compose([bool allowOverrides = false]) =>
 
 Instead of relying on code generation tools like `freezed`, we recommend Dart's `typedef` keyword to create immutable data classes. This keeps your models simple and avoids additional dependencies. the advantage of [Dart records](https://dart.dev/language/records) is that they come with equality semantics built in.
 
-If you 
-[Macros](https://dart.dev/language/macros)
+If maintaining the `copyWith` and `toJson` methods becomes problematic for maintenance reasons, you can create your own code generation with a tool like [`builder_runner`](https://pub.dev/packages/build_runner) or AI. Dart will soon have [macros](https://dart.dev/language/macros) and this should make code generation easier still.
 
 Here is an example of a data class with typedef and helpers for JSON and cloning:
 
