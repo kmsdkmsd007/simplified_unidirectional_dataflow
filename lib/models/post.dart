@@ -12,10 +12,10 @@ typedef Post = ({
 typedef PostsState = DataState<ImmutableList<Post>, Fault>;
 
 /// Paging state
-typedef PagingPosts = Paging<ImmutableList<Post>, Fault>;
+typedef PagingPosts = Loading<ImmutableList<Post>, Fault>;
 
 /// A page was loaded
-typedef PagedPosts = Paged<ImmutableList<Post>, Fault>;
+typedef PagedPosts = Loaded<ImmutableList<Post>, Fault>;
 
 /// Failed to load posts
 typedef FailedPosts = Failed<ImmutableList<Post>, Fault>;

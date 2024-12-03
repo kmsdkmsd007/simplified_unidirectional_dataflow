@@ -35,7 +35,7 @@ extension ClientExtensions on Client {
           'Next Url: $nextUrl');
 
       return switch (response.statusCode) {
-        200 => Paged(
+        200 => Loaded(
             _mapData(body, fromJson),
             nextUrl: nextUrl,
           ),

@@ -1,10 +1,24 @@
-# Simplified Unidirectional Dataflow
+# Simplified Unidirectional Data Flow
 
-A lightweight state management framework for Flutter that provides the benefits of unidirectional data flow without the complexity of BLoC.
+A lightweight state management approach for Flutter that provides the benefits of unidirectional data flow without the complexity of BLoC.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+  - [Core Components](#core-components)
+  - [Key Differences from BLoC](#key-differences-from-bloc)
+- [Getting Started](#getting-started)
+- [Benefits](#benefits)
+- [Best Practices](#best-practices)
+- [Example Usage](#example-usage)
+- [Further Reading](#further-reading)
+- [Contributing](#contributing)
 
 ## Overview
 
-This framework implements a simplified unidirectional data flow pattern that maintains predictable state management while reducing boilerplate code. It combines the best aspects of BLoC (Business Logic Component) architecture with a more straightforward, functional approach.
+This sample implements a simplified unidirectional data flow pattern that maintains predictable state management while reducing boilerplate code. It combines the best aspects of BLoC (Business Logic Component) architecture with a more straightforward, functional approach.
 
 ## Key Features
 
@@ -77,12 +91,12 @@ ValueListenableBuilder<AppState>(
 
 ## Best Practices
 
-1. Keep controllers focused on a single responsibility
-2. Use immutable state objects
-3. Handle all error cases explicitly
+1. Keep controllers small and break them up to share them across app components
+2. Use records with the `typedef` keyword for immutable state objects
+3. Handle all error cases explicitly with algebraic data types
 4. Avoid global state
-5. Write tests for all business logic
-6. Keep UI components pure and dependent only on their input state
+5. Write widget tests for business logic and user interactions
+6. Avoid unecessary layering and mapping
 
 ## Example Usage
 
@@ -94,6 +108,10 @@ See the sample app in this repository for a complete example of:
 - Theme management
 - Testing
 
+## Further Reading
+
+[Dart: Algebraic Data Types](https://www.christianfindlay.com/blog/dart-algebraic-data-types)
+[ioc_container Package on Pub Dev](https://pub.dev/packages/ioc_container)
 
 ## Contributing
 

@@ -1,4 +1,3 @@
-// test/widget_test.dart
 import 'dart:async';
 import 'dart:convert';
 
@@ -29,48 +28,59 @@ void main() {
 
     await tester.pumpWidget(const AppRoot());
 
-    // Verify initial loading state
+    // Verify initial loading state. Note that we don't directly verify state
+    // We verify it indirectly at the UI level. This means that if we refactor
+    // the code, we don't have to change the tests
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     // Wait for data to load
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
+    // Verify loading state is hidden
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
     // Verify data is displayed
     expect(find.text('Post 1'), findsOneWidget);
 
     // ignore: unused_local_variable
-    final asdasd = tester.widget<InfoCard>(find.byKey(pageCountKey));
+    final infoCard = tester.widget<InfoCard>(find.byKey(pageCountKey));
 
     await matchesGolden('FirstLoad');
 
-    // await tester.dragUntilVisible(
-    //   find.text('Post 10'),
-    //   find.byType(ListView),
-    //   const Offset(0, -500),
-    // );
+    expect(find.text('Post 11'), findsNothing);
 
     // Scroll to the bottom to trigger pagination
     await tester.drag(find.byType(ListView), const Offset(0, -500));
-
     await tester.pumpAndSettle();
-
     await matchesGolden('AfterDrag');
 
-    expect(find.text('Post 10'), findsOneWidget);
-
-    // Scroll to the bottom to trigger pagination
-    // await tester.drag(find.byType(ListView), const Offset(0, -500));
-
+    await tester.dragUntilVisible(
+      find.text('Post 10'),
+      find.byType(ListView),
+      const Offset(0, -500),
+    );
     // Wait for data to load
     await tester.pump(const Duration(seconds: 2));
+    await matchesGolden('AfterDragTo10');
 
     // Verify additional data is displayed
     expect(find.text('Post 11'), findsOneWidget);
-    expect(find.text('Post 20'), findsOneWidget);
+
+    await tester.dragUntilVisible(
+      find.text('Post 20'),
+      find.byType(ListView),
+      const Offset(0, -500),
+    );
+    // Wait for data to load
+    await tester.pump(const Duration(seconds: 2));
+    await matchesGolden('AfterDragTo20');
+
+    await tester.pumpAndSettle();
   });
 }
 
+/// Generates mock data in the same shape that the JSONPlaceholder API returns
 MockClient getMockClientForJsonPlaceholder() => MockClient((request) async {
       final uri = request.url;
       final start = uri.queryParameters['_start'] ?? '0';
@@ -100,6 +110,7 @@ MockClient getMockClientForJsonPlaceholder() => MockClient((request) async {
       );
     });
 
+/// Checks to see if the golden is the same the expected image
 Future<void> matchesGolden(
   String filename,
 ) async =>

@@ -6,10 +6,12 @@ import 'package:simplified_unidirectional_dataflow/framework/framework.dart';
 import 'package:simplified_unidirectional_dataflow/main.dart';
 import 'package:simplified_unidirectional_dataflow/models/app_state.dart';
 import 'package:simplified_unidirectional_dataflow/models/post.dart';
+import 'package:simplified_unidirectional_dataflow/ui/constants.dart';
 import 'package:simplified_unidirectional_dataflow/ui/info_card.dart';
+import 'package:simplified_unidirectional_dataflow/ui/post_card.dart';
 
-const postCountKey = ValueKey('PostsInfoCard');
 const pageCountKey = ValueKey('PageInfoCard');
+const postCountKey = ValueKey('PostsInfoCard');
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -17,14 +19,18 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('Posts'),
+          title: Text(
+            appTitle,
+            style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+          ),
           centerTitle: true,
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
         body: ValueListenableBuilder<AppState>(
           valueListenable: container<AppController>(),
           builder: (context, state, _) => switch (state.postsData) {
-            Loading() => const Center(child: CircularProgressIndicator()),
             PagedPosts(data: final posts, nextUrl: final nextUrl) ||
             PagingPosts(data: final posts, nextUrl: final nextUrl) =>
               _mainStack(
@@ -40,22 +46,16 @@ class HomePage extends StatelessWidget {
         ),
       );
 
-  Stack _mainStack(
-    BuildContext context,
-    ImmutableList<Post> posts,
-    Uri? nextUrl,
-    Widget child,
-  ) =>
-      Stack(
-        children: [
-          Column(
-            children: [
-              _infoCards(context, posts),
-              Expanded(child: child),
-            ],
-          ),
-          _refreshButton(context),
-        ],
+  Widget _buildMainList(ImmutableList<Post> posts, Uri? nextUrl) =>
+      NotificationListener<ScrollNotification>(
+        onNotification: (s) => _onScrollNotification(s, nextUrl),
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+          itemCount: posts.length + (nextUrl != null ? 1 : 0),
+          itemBuilder: (context, index) => index == posts.length
+              ? _loadingIndicator()
+              : PostCard(post: posts[index]),
+        ),
       );
 
   Stack _defaultDisplay(BuildContext context) => Stack(
@@ -108,17 +108,6 @@ class HomePage extends StatelessWidget {
         ],
       );
 
-  Positioned _refreshButton(BuildContext context) => Positioned(
-        right: 16,
-        bottom: 16,
-        child: FloatingActionButton(
-          onPressed: () => unawaited(container<AppController>().refresh()),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-          foregroundColor: Theme.of(context).colorScheme.onSecondary,
-          child: const Icon(Icons.refresh),
-        ),
-      );
-
   Container _infoCards(BuildContext context, ImmutableList<Post> posts) =>
       Container(
         padding: const EdgeInsets.all(16),
@@ -149,18 +138,6 @@ class HomePage extends StatelessWidget {
         ),
       );
 
-  Widget _buildMainList(ImmutableList<Post> posts, Uri? nextUrl) =>
-      NotificationListener<ScrollNotification>(
-        onNotification: (s) => _onScrollNotification(s, nextUrl),
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-          itemCount: posts.length + (nextUrl != null ? 1 : 0),
-          itemBuilder: (context, index) => index == posts.length
-              ? _loadingIndicator()
-              : _buildPostCard(context, posts[index]),
-        ),
-      );
-
   Widget _loadingIndicator() => const Padding(
         padding: EdgeInsets.all(16),
         child: Center(
@@ -168,32 +145,22 @@ class HomePage extends StatelessWidget {
         ),
       );
 
-  Card _buildPostCard(BuildContext context, Post post) => Card(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Stack _mainStack(
+    BuildContext context,
+    ImmutableList<Post> posts,
+    Uri? nextUrl,
+    Widget child,
+  ) =>
+      Stack(
+        children: [
+          Column(
             children: [
-              Text(
-                '${post.id}. ${post.title}',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                post.body,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
+              _infoCards(context, posts),
+              Expanded(child: child),
             ],
           ),
-        ),
+          _refreshButton(context),
+        ],
       );
 
   bool _onScrollNotification(ScrollNotification scrollInfo, Uri? nextUrl) {
@@ -205,4 +172,15 @@ class HomePage extends StatelessWidget {
     }
     return false;
   }
+
+  Positioned _refreshButton(BuildContext context) => Positioned(
+        right: 16,
+        bottom: 16,
+        child: FloatingActionButton(
+          onPressed: () => unawaited(container<AppController>().refresh()),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+          child: const Icon(Icons.refresh),
+        ),
+      );
 }

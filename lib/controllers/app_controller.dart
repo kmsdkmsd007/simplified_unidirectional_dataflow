@@ -6,20 +6,17 @@ import 'package:simplified_unidirectional_dataflow/framework/framework.dart';
 import 'package:simplified_unidirectional_dataflow/models/app_state.dart';
 import 'package:simplified_unidirectional_dataflow/models/post.dart';
 
-// Note: you should use a more robust logging solution
-
+/// The controller for the app
 class AppController extends ValueNotifier<AppState> {
   AppController(this.httpClient, this.navigatorKey) : super(createAppState());
 
+  /// The HTTP client
   final Client httpClient;
+
+  /// The navigator key
   final GlobalKey<NavigatorState> navigatorKey;
 
-  /// Refreshes the data from scratch
-  Future<void> refresh() async {
-    value = value.copyWith(pageCount: 0, postsData: Uninitialized());
-    await fetchPosts();
-  }
-
+  /// The number of posts loaded
   int? get postCount => switch (value.postsData) {
         PagedPosts(
           data: final posts,
@@ -28,40 +25,23 @@ class AppController extends ValueNotifier<AppState> {
         _ => null,
       };
 
-  /// Callback that checks to see if there are more posts to fetch
-  Uri? _getNextUrl(Response r) {
-    final nextUrl = switch (r.headers['x-total-count']) {
-      final String totalCount
-          when (int.tryParse(totalCount) ?? 0) > (value.pageCount + 1) * 10 =>
-        _postsUrl(value.pageCount + 1),
-      _ => null,
-    };
-
-    return nextUrl;
-  }
-
-  /// Get the url based on the page count
-  Uri _postsUrl(int pageCount) => Uri.parse(
-        'https://jsonplaceholder.typicode.com/posts?_start=${pageCount * 10}&_limit=10',
-      );
-
   /// Fetches the next page of posts
   Future<void> fetchPosts() async {
     try {
-      if (value.postsData is Loading || value.postsData is Paging) {
+      if (value.postsData is Loading) {
         debugPrint('Already fetching posts. Ignoring request.');
         return;
       }
 
       switch (value.postsData) {
         // Switch to paging a new page
-        case Paged(data: final d, nextUrl: final url):
-          value = value.copyWith(postsData: Paging(d, nextUrl: url));
+        case Loaded(data: final d, nextUrl: final url):
+          value = value.copyWith(postsData: Loading(d, nextUrl: url));
 
         // Switch to paging for the first page
         case Uninitialized():
           value = value.copyWith(
-            postsData: Paging(~<Post>[], nextUrl: _postsUrl(0)),
+            postsData: Loading(~<Post>[], nextUrl: _postsUrl(0)),
           );
 
         default:
@@ -81,7 +61,7 @@ class AppController extends ValueNotifier<AppState> {
             PagedPosts(data: final newPosts)
           ) =>
             // We add the new posts to the old posts
-            Paged(
+            Loaded(
               ~[...oldPosts, ...newPosts],
               nextUrl: _postsUrl(value.pageCount + 1),
             ),
@@ -94,9 +74,15 @@ class AppController extends ValueNotifier<AppState> {
 
       value = value.copyWith(pageCount: value.pageCount + 1);
     } catch (e) {
-      //An error is unlikely, but could occur if there is a mistak in the code
+      //An error is unlikely, but could occur if there is a mistake in the code
       value = value.copyWith(postsData: Failed((message: e.toString())));
     }
+  }
+
+  /// Refreshes the data from scratch
+  Future<void> refresh() async {
+    value = value.copyWith(pageCount: 0, postsData: Uninitialized());
+    await fetchPosts();
   }
 
   /// Fetches posts from the API based on the current page
@@ -117,4 +103,21 @@ class AppController extends ValueNotifier<AppState> {
       getNextUrlFromResponse: _getNextUrl,
     );
   }
+
+  /// Callback that checks to see if there are more posts to fetch
+  Uri? _getNextUrl(Response r) {
+    final nextUrl = switch (r.headers['x-total-count']) {
+      final String totalCount
+          when (int.tryParse(totalCount) ?? 0) > (value.pageCount + 1) * 10 =>
+        _postsUrl(value.pageCount + 1),
+      _ => null,
+    };
+
+    return nextUrl;
+  }
+
+  /// Get the url based on the page count
+  Uri _postsUrl(int pageCount) => Uri.parse(
+        'https://jsonplaceholder.typicode.com/posts?_start=${pageCount * 10}&_limit=10',
+      );
 }

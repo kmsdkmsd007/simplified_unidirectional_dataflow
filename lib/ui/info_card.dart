@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:simplified_unidirectional_dataflow/ui/constants.dart';
 
 class InfoCard extends StatelessWidget {
   const InfoCard({
@@ -15,8 +16,8 @@ class InfoCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.primaryContainer,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 16,
+            horizontal: Spacing.lg,
+            vertical: Spacing.md,
           ),
           child: Column(
             children: [
@@ -26,7 +27,7 @@ class InfoCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: Spacing.xs),
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
