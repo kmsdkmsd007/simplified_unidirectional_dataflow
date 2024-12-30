@@ -27,7 +27,10 @@ class PostCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.8),
+                Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withAlpha((0.8 * 255).toInt()),
               ],
             ),
           ),
@@ -52,7 +55,10 @@ class PostCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .surface
+              .withAlpha((0.5 * 255).toInt()),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -73,7 +79,10 @@ class PostCard extends StatelessWidget {
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withAlpha((0.1 * 255).toInt()),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -90,7 +99,10 @@ class PostCard extends StatelessWidget {
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+              color: Theme.of(context)
+                  .colorScheme
+                  .secondary
+                  .withAlpha((0.1 * 255).toInt()),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
