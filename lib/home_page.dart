@@ -67,7 +67,10 @@ class HomePage extends StatelessWidget {
                 Icon(
                   Icons.inbox_outlined,
                   size: 64,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withAlpha((0.6 * 255).toInt()),
                 ),
                 const SizedBox(height: 16),
                 Text(
